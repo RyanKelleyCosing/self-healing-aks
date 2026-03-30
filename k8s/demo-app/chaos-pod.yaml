@@ -1,0 +1,94 @@
+# Chaos Engineering Pod
+# Use this to inject failures and test self-healing capabilities
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: chaos-injector
+  namespace: demo-app
+  labels:
+    app: chaos-injector
+spec:
+  containers:
+    - name: chaos
+      image: busybox
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          echo "Chaos Injector Ready"
+          echo "Available chaos commands:"
+          echo "  crash    - Exit with error code"
+          echo "  oom      - Consume all memory"
+          echo "  cpu      - Max out CPU"
+          echo "  hang     - Stop responding"
+          tail -f /dev/null
+      resources:
+        requests:
+          memory: "32Mi"
+          cpu: "10m"
+        limits:
+          memory: "64Mi"
+          cpu: "50m"
+---
+# Crash Loop Pod - Demonstrates restart detection
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crash-loop-demo
+  namespace: demo-app
+  labels:
+    app: crash-loop-demo
+    chaos: "true"
+spec:
+  restartPolicy: Always
+  containers:
+    - name: crasher
+      image: busybox
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          echo "Starting crash loop demo..."
+          echo "This pod will crash in 30 seconds"
+          sleep 30
+          echo "Crashing now!"
+          exit 1
+      resources:
+        requests:
+          memory: "16Mi"
+          cpu: "10m"
+        limits:
+          memory: "32Mi"
+          cpu: "50m"
+---
+# Memory Hog Pod - Demonstrates OOM detection
+apiVersion: v1
+kind: Pod
+metadata:
+  name: memory-hog-demo
+  namespace: demo-app
+  labels:
+    app: memory-hog-demo
+    chaos: "true"
+spec:
+  containers:
+    - name: memory-hog
+      image: python:3.11-alpine
+      command: ["python", "-c"]
+      args:
+        - |
+          import time
+          data = []
+          print("Memory hog starting...")
+          while True:
+              # Allocate 10MB every second
+              data.append('x' * (10 * 1024 * 1024))
+              print(f"Allocated {len(data) * 10}MB")
+              time.sleep(1)
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "10m"
+        limits:
+          memory: "128Mi"  # Will OOM when exceeding this
+          cpu: "50m"
+

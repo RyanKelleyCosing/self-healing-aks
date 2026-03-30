@@ -1,0 +1,99 @@
+# Self-Healing Alerting Rules for Prometheus
+# These alerts trigger auto-remediation via Logic App
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: self-healing-rules
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: self-healing.rules
+      rules:
+        # Pod Crash Looping - Trigger restart
+        - alert: PodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total[1h]) > 5
+          for: 5m
+          labels:
+            severity: critical
+            remediation: restart_pod
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping"
+            description: "Pod has restarted {{ $value }} times in the last hour"
+            runbook: "Auto-remediation: Pod will be deleted and rescheduled"
+        
+        # High Memory Usage - Trigger scale out
+        - alert: HighMemoryUsage
+          expr: |
+            (container_memory_working_set_bytes / container_spec_memory_limit_bytes) > 0.9
+            and container_spec_memory_limit_bytes > 0
+          for: 5m
+          labels:
+            severity: warning
+            remediation: scale_deployment
+          annotations:
+            summary: "High memory usage in {{ $labels.namespace }}/{{ $labels.pod }}"
+            description: "Container memory usage is above 90%"
+            runbook: "Auto-remediation: Deployment will be scaled out"
+        
+        # High CPU Usage
+        - alert: HighCPUUsage
+          expr: |
+            (rate(container_cpu_usage_seconds_total[5m]) / container_spec_cpu_quota * 100000) > 90
+            and container_spec_cpu_quota > 0
+          for: 10m
+          labels:
+            severity: warning
+            remediation: scale_deployment
+          annotations:
+            summary: "High CPU usage in {{ $labels.namespace }}/{{ $labels.pod }}"
+            description: "Container CPU usage is above 90%"
+        
+        # Node Not Ready
+        - alert: NodeNotReady
+          expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            remediation: cordon_node
+          annotations:
+            summary: "Node {{ $labels.node }} is not ready"
+            description: "Node has been in NotReady state for more than 5 minutes"
+        
+        # Pending Pods - Possible resource constraints
+        - alert: PodsPending
+          expr: |
+            sum by (namespace) (kube_pod_status_phase{phase="Pending"}) > 0
+          for: 10m
+          labels:
+            severity: warning
+            remediation: scale_nodepool
+          annotations:
+            summary: "Pods pending in namespace {{ $labels.namespace }}"
+            description: "Pods have been pending for more than 10 minutes"
+        
+        # Deployment Replica Mismatch
+        - alert: DeploymentReplicasMismatch
+          expr: |
+            kube_deployment_spec_replicas != kube_deployment_status_replicas_available
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} replica mismatch"
+            description: "Deployment has {{ $value }} available replicas, expected more"
+        
+        # PVC Almost Full
+        - alert: PVCAlmostFull
+          expr: |
+            (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PVC {{ $labels.persistentvolumeclaim }} is almost full"
+            description: "PVC usage is above 85%"
+

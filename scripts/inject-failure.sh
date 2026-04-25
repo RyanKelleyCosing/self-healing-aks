@@ -2,7 +2,7 @@
 # Chaos Injection Script for Self-Healing AKS Demo
 # Usage: ./inject-failure.sh [crash|oom|scale]
 
-set -e
+set -euo pipefail
 
 NAMESPACE="demo-app"
 COLOR_RED='\033[0;31m'
@@ -20,6 +20,23 @@ log_warn() {
 
 log_error() {
     echo -e "${COLOR_RED}[ERROR]${COLOR_NC} $1"
+}
+
+# Verify kubectl is available and context is set.
+verify_kubectl_context() {
+    if ! command -v kubectl &>/dev/null; then
+        log_error "kubectl not found in PATH. Install kubectl before running this script."
+        exit 1
+    fi
+
+    local context
+    context=$(kubectl config current-context 2>/dev/null || true)
+    if [[ -z "$context" ]]; then
+        log_error "No active kubectl context. Run 'kubectl config use-context <name>' first."
+        exit 1
+    fi
+
+    log_info "Using kubectl context: $context"
 }
 
 # Inject crash loop failure
@@ -88,6 +105,7 @@ usage() {
 }
 
 # Main
+verify_kubectl_context
 case "${1:-}" in
     crash)
         inject_crash

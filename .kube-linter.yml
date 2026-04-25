@@ -1,0 +1,12 @@
+# kube-linter configuration for self-healing-aks
+# https://docs.kubelinter.io/#/configuring-kubelinter
+checks:
+  # Enable all default checks
+  addAllBuiltIn: true
+
+  # Exclude checks that are intentionally violated in chaos/demo manifests
+  exclude:
+    # Chaos pods are allowed to have elevated resource limits for OOM testing
+    - "memory-limit"
+
+customChecks: []

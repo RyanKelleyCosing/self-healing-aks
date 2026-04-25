@@ -1,0 +1,62 @@
+name: Validate Self-Healing AKS
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bicep-validate:
+    name: Bicep Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        uses: azure/cli@v2
+        with:
+          inlineScript: az bicep version
+
+      - name: Bicep Build (Validate)
+        run: |
+          for file in infra/*.bicep; do
+            echo "Validating $file..."
+            az bicep build --file "$file" --stdout > /dev/null
+          done
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Lint shell scripts
+        run: shellcheck scripts/*.sh
+
+  kube-linter:
+    name: Kubernetes Manifest Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run kube-linter
+        uses: stackrox/kube-linter-action@v1
+        with:
+          directory: k8s/
+          config: .kube-linter.yml
+          format: sarif
+          output-file: kube-linter.sarif
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: kube-linter.sarif

@@ -1,4 +1,4 @@
-# 🔄 Self-Healing AKS Cluster
+# Self-Healing AKS Cluster
 
 [![Azure Kubernetes](https://img.shields.io/badge/AKS-Enabled-blue?logo=kubernetes)](.)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -6,14 +6,14 @@
 
 A **self-healing Kubernetes cluster** on Azure that automatically detects failures and remediates them without human intervention. Classic SRE automation - "I don't just monitor, I fix it automatically."
 
-## 🎯 What This Project Demonstrates
+## What This Project Demonstrates
 
 - **Auto-remediation**: Automatic recovery from common failure scenarios
 - **Observability**: Full monitoring stack with Prometheus & Grafana
 - **Chaos Engineering**: Built-in failure injection for testing
 - **GitOps Ready**: Infrastructure as Code with Bicep
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -48,7 +48,7 @@ Self-Healing Flow:
 6. Notification sent to Teams/Slack
 ```
 
-## 🔧 Self-Healing Capabilities
+## Self-Healing Capabilities
 
 | Failure Type | Detection | Remediation |
 |-------------|-----------|-------------|
@@ -58,7 +58,7 @@ Self-Healing Flow:
 | Pending Pods | Pod phase = Pending > 5min | Scale node pool |
 | Certificate Expiry | Cert-manager metrics | Trigger renewal |
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Azure subscription
@@ -107,7 +107,7 @@ az deployment group create \
   -f infra/logic-app.bicep
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── infra/
@@ -130,7 +130,7 @@ az deployment group create \
 └── README.md
 ```
 
-## 🧪 Demo: Trigger Self-Healing
+## Demo: Trigger Self-Healing
 
 ```bash
 # Inject a failure (pod crash)
@@ -144,17 +144,17 @@ kubectl port-forward svc/monitoring-grafana 3000:80 -n monitoring
 # Open http://localhost:3000 (admin/prom-operator)
 ```
 
-## 📊 Grafana Dashboards
+## Grafana Dashboards
 
 - **Cluster Overview**: Node health, resource usage
 - **Pod Health**: Restart counts, ready status
 - **Self-Healing Metrics**: Remediation events, MTTR
 
-## 📝 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built with ❤️ for resilient infrastructure**
+**Built for resilient infrastructure**
 
